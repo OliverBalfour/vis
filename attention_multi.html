@@ -4,102 +4,91 @@ Loads
 * attention: (heads, seqQ, seqK) array of floats
 * tokens: (seq,) array of strings
 -->
-<!-- <script type='module' src='./data.js'></script> -->
 
 <script type='module'>
 
+console.clear()
+
 import {LitElement, html, css} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
 
-// todo: how do I need import from data.js? try copying first, then import only, rel vs abs path.
-// import {attention, tokens} from './data.js';
+import {attention, tokens} from './data.js';
 
-class HelloWorld extends LitElement {
+class AttentionMulti extends LitElement {
+  static properties = {
+  };
+
+  constructor() {
+    super();
+  }
+
   render() {
     return html`
-      <h1>Hello, World! 4</h1>
+      <div>
+        ${attention.map(matrix_for_head => html`
+          <array-image .array=${matrix_for_head} .size=${300}></array-image>
+        `)}
+      </div>
     `;
   }
 }
+window.customElements.define('attention-multi', AttentionMulti);
 
-window.customElements.define('hello-world', HelloWorld);
+class ArrayImage extends LitElement {
+  static properties = {
+    array: {type: Array},  // 2D array of floats
+    size: {type: Number},  // pixels
+  };
 
-// class AttentionMulti extends LitElement {
-//   static properties = {
-//   };
+  constructor() {
+    super();
+    this.array = [];
+    this.size = 0;
+  }
 
-//   constructor() {
-//     super();
-//   }
+  render() {
+    // we make the canvas the size of the array (1px per entry), and upscale the canvas with CSS
+    return html`
+      <canvas width=${this.array.length} height=${this.array.length}
+        style="width: ${this.size}px; height: ${this.size}px;"></canvas>
+    `;
+  }
 
-//   render() {
-//     return html`
-//       <div>
-//         ${attention.map(attention_matrix_for_head => html`
-//           <array-image-${id} array=${attention_matrix_for_head} size=${300}></array-image-${id}>
-//         `)}
-//       </div>
-//     `;
-//   }
-// }
-// register('attention-multi', AttentionMulti);
+  static styles = css`
+    canvas {
+      image-rendering: pixelated;
+    }
+  `;
 
-// class ArrayImage extends LitElement {
-//   static properties = {
-//     array: {type: Array},  // 2D array of floats
-//     size: {type: Number},  // pixels
-//   };
+  get canvas() { return this.shadowRoot.querySelector('canvas'); }
 
-//   constructor() {
-//     super();
-//     this.array = [];
-//     this.size = 0;
-//   }
+  updated(changedProperties) {
+    this.draw();
+  }
 
-//   render() {
-//     // we make the canvas the size of the array (1px per entry), and upscale the canvas with CSS
-//     return html`
-//       <canvas width=${this.array.length} height=${this.array.length}
-//         style="width: ${this.size}px; height: ${this.size}px;"></canvas>
-//     `;
-//   }
-
-//   static styles = css`
-//     canvas {
-//       image-rendering: pixelated;
-//     }
-//   `;
-
-//   get canvas() { return this.shadowRoot.querySelector('canvas'); }
-
-//   updated(changedProperties) {
-//     this.draw();
-//   }
-
-//   draw() {
-//     const canvas = this.canvas;
-//     if (canvas.width != this.array[0].length || canvas.height != this.array.length) {
-//       canvas.width = this.array[0].length;
-//       canvas.height = this.array.length;
-//     }
-//     const ctx = canvas.getContext('2d');
-//     const bitmap = ctx.getImageData(0, 0, canvas.width, canvas.height);
-//     for (let y = 0; y < canvas.height; y++) {
-//       for (let x = 0; x < canvas.width; x++) {
-//         const value = array[y][x];
-//         const pixel = (y * canvas.width + x) * 4;  // 4 bytes per pixel, RGBA
-//         // monochromatic color scheme
-//         bitmap.data[pixel + 0] = value * 255;
-//         bitmap.data[pixel + 1] = value * 255;
-//         bitmap.data[pixel + 2] = value * 255;
-//         bitmap.data[pixel + 3] = 255;
-//       }
-//     }
-//     ctx.putImageData(bitmap, 0, 0);
-//   }
-// }
-// register('array-image', ArrayImage);
+  draw() {
+    const canvas = this.canvas;
+    if (canvas.width != this.array[0].length || canvas.height != this.array.length) {
+      canvas.width = this.array[0].length;
+      canvas.height = this.array.length;
+    }
+    const ctx = canvas.getContext('2d');
+    const bitmap = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const value = this.array[y][x];
+        const pixel = (y * canvas.width + x) * 4;  // 4 bytes per pixel, RGBA
+        // monochromatic color scheme
+        bitmap.data[pixel + 0] = value * 255  + 30 * (value > 0);
+        bitmap.data[pixel + 1] = value * 255  + 30 * (value > 0);
+        bitmap.data[pixel + 2] = value * 255  + 30 * (value > 0);
+        bitmap.data[pixel + 3] = 255;
+      }
+    }
+    ctx.putImageData(bitmap, 0, 0);
+  }
+}
+window.customElements.define('array-image', ArrayImage);
 
 </script>
 
-<hello-world />
-<!-- <attention-multi /> -->
+<attention-multi />
