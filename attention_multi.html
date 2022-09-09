@@ -4,41 +4,24 @@ Loads
 * attention: (heads, seqQ, seqK) array of floats
 * tokens: (seq,) array of strings
 -->
-<script type='module' src='./data.js'></script>
+<!-- <script type='module' src='./data.js'></script> -->
 
 <script type='module'>
 
 import {LitElement, html, css} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
 
 // todo: how do I need import from data.js? try copying first, then import only, rel vs abs path.
-import {attention, tokens} from './data.js';
-
-(() => {
-
-// Custom elements can't be re-registered so you need to reload the entire VSCode window / Jupyter Lab tab
-// As a workaround, we append numeric ID's to all custom element names
-// Prototype magic doesn't work because you can't replace a constructor in-place
-// We can work around this with proxies but it gets messy. See:
-// https://github.com/open-wc/open-wc/blob/4c6447a934390e2d5e6b68b64e530e60580dc249/packages/dev-server-hmr/src/wcHmrRuntime.js
-const id = window.__vis_id ? window.__vis_id + 1 : 0;
-window.__vis_id = id;
-function register(name, element_class) {
-  name += id;
-  if (window.customElements.get(name)) {
-    console.warn(`Custom element <${name}> already registered. Reload the window to reload the custom element.`);
-  } else {
-    window.customElements.define(name, element_class);
-  }
-}
+// import {attention, tokens} from './data.js';
 
 class HelloWorld extends LitElement {
   render() {
     return html`
-      <h1>Hello, World! 3</h1>
+      <h1>Hello, World! 4</h1>
     `;
   }
 }
-register('hello-world', HelloWorld);
+
+window.customElements.define('hello-world', HelloWorld);
 
 // class AttentionMulti extends LitElement {
 //   static properties = {
@@ -116,7 +99,6 @@ register('hello-world', HelloWorld);
 // }
 // register('array-image', ArrayImage);
 
-})()
 </script>
 
 <hello-world />
