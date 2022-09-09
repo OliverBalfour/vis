@@ -15,17 +15,40 @@ const {
 
 class AttentionMulti extends LitElement {
   static properties = {
+    focus_head: {type: Number},
   };
 
   constructor() {
     super();
+    this.focus_head = 0;
   }
+
+  hue(i) {
+    return (i * 360 / attention.length) % 360;
+  }
+
+  static styles = css`
+    div.container {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    div.container > * {
+      margin-right: 10px;
+    }
+  `;
 
   render() {
     return html`
-      <div>
-        ${attention.map(matrix_for_head => html`
-          <array-image .array=${matrix_for_head} .size=${300}></array-image>
+      <div class='container'>
+        <array-image .array=${attention[this.focus_head]} .hue=${this.hue(this.focus_head)}
+          .size=${250} .label=${`Head ${this.focus_head}`}>
+        </array-image>
+        
+        ${attention.map((matrix_for_head, i) => html`
+          <array-image .array=${matrix_for_head} .hue=${this.hue(i)} .size=${90} .label=${i}
+            @mouseover=${e => this.focus_head = i}>
+          </array-image>
         `)}
       </div>
     `;
@@ -38,12 +61,16 @@ class ArrayImage extends LitElement {
   static properties = {
     array: {type: Array},  // 2D array of floats
     size: {type: Number},  // pixels
+    label: {type: String},
+    hue: {type: Number},
   };
 
   constructor() {
     super();
     this.array = [];
     this.size = 0;
+    this.label = '';
+    this.hue = 0;
   }
 
   render() {
@@ -51,8 +78,11 @@ class ArrayImage extends LitElement {
     // We make the canvas framebuffer/image the size of the array (1 pixel per entry), and upscale it
     // to screen resolution with CSS
     return html`
-      <canvas width=${this.array.length} height=${this.array.length}
-        style="width: ${this.size}px; height: ${this.size}px;"></canvas>
+      <div class='array-image'>
+        <canvas width=${this.array.length} height=${this.array.length}
+          style="width: ${this.size}px; height: ${this.size}px;"></canvas>
+        <span class='label'>${this.label}</span>
+      </div>
     `;
   }
 
@@ -60,12 +90,45 @@ class ArrayImage extends LitElement {
     canvas {
       image-rendering: pixelated;
     }
+    div.array-image {
+      position: relative;
+    }
+    span.label {
+      font-size: 0.8em;
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: #333;
+      border-bottom-left-radius: 3px;
+      border-left: 1px solid white;
+      border-bottom: 1px solid white;
+      padding: 2px 3px;
+      user-select: none;
+    }
   `;
 
   get canvas() { return this.shadowRoot.querySelector('canvas'); }
 
   updated(changedProperties) {
     this.draw();
+  }
+
+  channel_multipliers() {
+    // rgb scale from 0 to 1
+    // reaaally dodgy, but it's just a demo
+    if (this.hue < 60) {
+      return [1, 0.2, 0.2];
+    } else if (this.hue < 120) {
+      return [0.2, 1, 0.2];
+    } else if (this.hue < 180) {
+      return [0.2, 0.2, 1];
+    } else if (this.hue < 240) {
+      return [1, 1, 0.2];
+    } else if (this.hue < 300) {
+      return [1, 0.2, 1];
+    } else {
+      return [0.2, 1, 1];
+    }
   }
 
   draw() {
@@ -78,15 +141,27 @@ class ArrayImage extends LitElement {
     // Operate on the raw framebuffer/image data as a flattened (height, width, 4) array of int8's
     const ctx = canvas.getContext('2d');
     const bitmap = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const [r,g,b] = this.channel_multipliers();
     for (let y = 0; y < canvas.height; y++) {
       for (let x = 0; x < canvas.width; x++) {
         const value = this.array[y][x];
         const pixel = (y * canvas.width + x) * 4;  // 4 bytes per pixel, RGBA
-        // monochromatic color scheme
-        bitmap.data[pixel + 0] = value * 255  + 30 * (value > 0);
-        bitmap.data[pixel + 1] = value * 255  + 30 * (value > 0);
-        bitmap.data[pixel + 2] = value * 255  + 30 * (value > 0);
-        bitmap.data[pixel + 3] = 255;
+        // color scheme
+        if (y < x) {
+          bitmap.data[pixel + 0] = 255;
+          bitmap.data[pixel + 1] = 255;
+          bitmap.data[pixel + 2] = 255;
+          bitmap.data[pixel + 3] = 255;
+        } else {
+          bitmap.data[pixel + 0] = (1 - value) * r * 200 + 55;
+          bitmap.data[pixel + 1] = (1 - value) * g * 200 + 55;
+          bitmap.data[pixel + 2] = (1 - value) * b * 200 + 55;
+          bitmap.data[pixel + 3] = 255;
+        }
+        // bitmap.data[pixel + 0] = (1 - value) * 255 * r - 60 * (value > 0);
+        // bitmap.data[pixel + 1] = (1 - value) * 255 * g - 60 * (value > 0);
+        // bitmap.data[pixel + 2] = (1 - value) * 255 * b - 60 * (value > 0);
+        // bitmap.data[pixel + 3] = 255;
       }
     }
     ctx.putImageData(bitmap, 0, 0);
