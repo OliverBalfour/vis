@@ -1,17 +1,17 @@
 
-<!--
-Loads
-* attention: (heads, seqQ, seqK) array of floats
-* tokens: (seq,) array of strings
--->
-
 <script type='module'>
-
-console.clear()
 
 import {LitElement, html, css} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
 
-import {attention, tokens} from './data.js';
+// wrap everything in a function we immediately invoke to prevent polluting the global namespace
+(function(){
+
+// Load in the inputs Python leaves for us
+const {
+  attention,  // (heads, seqQ, seqK) array of floats
+  tokens,     // (seq,) array of strings
+} = window.latest_parameters;
+
 
 class AttentionMulti extends LitElement {
   static properties = {
@@ -33,6 +33,7 @@ class AttentionMulti extends LitElement {
 }
 window.customElements.define('attention-multi', AttentionMulti);
 
+
 class ArrayImage extends LitElement {
   static properties = {
     array: {type: Array},  // 2D array of floats
@@ -46,7 +47,9 @@ class ArrayImage extends LitElement {
   }
 
   render() {
-    // we make the canvas the size of the array (1px per entry), and upscale the canvas with CSS
+    // We render the array as a grid of colored squares on an HTML5 canvas, a bitmap we can draw to
+    // We make the canvas framebuffer/image the size of the array (1 pixel per entry), and upscale it
+    // to screen resolution with CSS
     return html`
       <canvas width=${this.array.length} height=${this.array.length}
         style="width: ${this.size}px; height: ${this.size}px;"></canvas>
@@ -66,11 +69,13 @@ class ArrayImage extends LitElement {
   }
 
   draw() {
+    // Update the canvas size
     const canvas = this.canvas;
     if (canvas.width != this.array[0].length || canvas.height != this.array.length) {
       canvas.width = this.array[0].length;
       canvas.height = this.array.length;
     }
+    // Operate on the raw framebuffer/image data as a flattened (height, width, 4) array of int8's
     const ctx = canvas.getContext('2d');
     const bitmap = ctx.getImageData(0, 0, canvas.width, canvas.height);
     for (let y = 0; y < canvas.height; y++) {
@@ -89,6 +94,8 @@ class ArrayImage extends LitElement {
 }
 window.customElements.define('array-image', ArrayImage);
 
+})()
 </script>
 
+<!-- Render our component -->
 <attention-multi />
